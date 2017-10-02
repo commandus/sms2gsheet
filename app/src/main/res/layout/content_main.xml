@@ -8,13 +8,34 @@
     tools:context="com.commandus.sms2gsheets.MainActivity"
     tools:showIn="@layout/activity_main">
 
+    <android.support.v4.widget.ContentLoadingProgressBar
+        android:id="@+id/progress_bar_sheets"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="8dp"
+        tools:layout_editor_absoluteY="8dp" />
+
+
     <TextView
+        android:id="@+id/text_sign"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="Please sign in"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+    <Button
+        android:id="@+id/button_sign"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/text_button_sign_sheets"
+        tools:layout_editor_absoluteY="459dp"
+        tools:layout_editor_absoluteX="148dp" />
 
 </android.support.constraint.ConstraintLayout>
