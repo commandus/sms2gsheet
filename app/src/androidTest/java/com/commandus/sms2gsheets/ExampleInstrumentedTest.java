@@ -1,4 +1,4 @@
-package com.commandus.sberbanksms;
+package com.commandus.sms2gsheets;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

@@ -1,4 +1,4 @@
-package com.commandus.sberbanksms;
+package com.commandus.sms2gsheets;
 
 import org.junit.Test;
 

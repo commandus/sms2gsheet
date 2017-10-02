@@ -1,8 +1,7 @@
-package com.commandus.sberbanksms;
+package com.commandus.sms2gsheets;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;

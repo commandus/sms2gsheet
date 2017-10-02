@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.commandus.sberbanksms">
+    package="com.commandus.sms2gsheets">
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
@@ -14,14 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <receiver android:name="com.commandus.sberbanksms.SMSReceiver">
+        <receiver android:name="com.commandus.sms2gsheets.SMSReceiver">
             <intent-filter android:priority="100">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.commandus.sms2gsheets.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -29,7 +29,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".SberbankSmsService"></service>
+        <service android:name="com.commandus.sms2gsheets.SberbankSmsService"></service>
     </application>
 
 </manifest>

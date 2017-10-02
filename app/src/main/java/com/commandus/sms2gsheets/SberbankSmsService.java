@@ -1,4 +1,4 @@
-package com.commandus.sberbanksms;
+package com.commandus.sms2gsheets;
 
 import android.app.Notification;
 import android.app.NotificationManager;
