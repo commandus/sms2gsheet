@@ -12,8 +12,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 
 public class Helper {
     /**
-     * Display an error dialog showing that Google Play Services is missing
-     * or out of date.
+     * Display an error dialog showing that Google Play Services is missing or out of date.
      * @param connectionStatusCode code describing the presence (or lack of)
      *     Google Play Services on this device.
      */
@@ -23,7 +22,7 @@ public class Helper {
             final int connectionStatusCode
     ) {
         GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        Dialog dialog = apiAvailability.getErrorDialog(
+        Dialog dialog = apiAvailability.getErrorDialog (
                 activity,
                 connectionStatusCode,
                 code

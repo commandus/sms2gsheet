@@ -2,14 +2,12 @@ package com.commandus.sms2gsheets;
 
 import android.Manifest;
 import android.accounts.AccountManager;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -20,7 +18,6 @@ import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.SmsManager;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
@@ -31,15 +28,13 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
+import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
@@ -210,7 +205,65 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             mTextSign.setText("No network connection available.");
         } else {
             // new ListRequestTask(mCredential).execute();
-            new AddRequestTask(MainActivity.this, REQUEST_GOOGLE_PLAY_SERVICES, mCredential, mTextSign, mProgress).execute();
+            new AppendRowsTask(mCredential, new GoogleSheetsResponseReceiver() {
+                @Override
+                public AppendValuesResponse onRequest(Sheets sheets) throws IOException {
+                    String spreadsheetId = "1eYiu7IW8FpqT-PbYf_LM-nYMoNk8AKNp4jiDYAjAiCo";
+                    String range = "Class Data!A2:F";
+                    ValueRange vals = new ValueRange();
+                    vals.setMajorDimension("ROWS");
+                    List<List<Object>> vls;
+                    vls = new ArrayList<>();
+                    ArrayList<Object> row = new ArrayList<Object>();
+                    row.add("3");
+                    row.add("4");
+                    vls.add(row);
+                    vals.setValues(vls);
+                    Sheets.Spreadsheets.Values.Append r = sheets.spreadsheets().values().append(spreadsheetId, range, vals);
+                    r.setValueInputOption("RAW");
+                    AppendValuesResponse response = r.execute();
+                    Log.i(TAG, response.toString());
+                    return response;
+                }
+
+                @Override
+                public void onStart() {
+                    mTextSign.setText("");
+                    mProgress.show();
+                }
+
+                @Override
+                public void onStop() {
+                    mProgress.hide();
+                }
+
+                @Override
+                public void onAppend(AppendValuesResponse response) {
+                    if (response == null) {
+                        mTextSign.setText("No results returned.");
+                    } else {
+                        mTextSign.setText(response.toString());
+                    }
+                }
+
+                @Override
+                public void onCancel(Exception error) {
+                    if (error instanceof GooglePlayServicesAvailabilityIOException) {
+                        Helper.showGooglePlayServicesAvailabilityErrorDialog(
+                                MainActivity.this,
+                                MainActivity.REQUEST_GOOGLE_PLAY_SERVICES,
+                                ((GooglePlayServicesAvailabilityIOException) error)
+                                        .getConnectionStatusCode());
+                    } else if (error instanceof UserRecoverableAuthIOException) {
+                        MainActivity.this.startActivityForResult(
+                                ((UserRecoverableAuthIOException) error).getIntent(),
+                                MainActivity.REQUEST_AUTHORIZATION);
+                    } else {
+                        mTextSign.setText("The following error occurred:\n"
+                                + error.getMessage());
+                    }
+                }
+            }).execute();
         }
     }
 
