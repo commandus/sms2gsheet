@@ -12,11 +12,16 @@
 
     <application
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <meta-data
+            android:name="com.google.android.backup.api_key"
+            android:value="AEdPqrEAAAAIT6wgbr5VViuaSMInsavlgKBKIIsFJ8I2hwB29A" />
 
         <receiver android:name="com.commandus.sms2gsheets.SMSReceiver">
             <intent-filter android:priority="100">
@@ -31,6 +36,15 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http"
+                    android:host="sms.commandus.com" />
+                <data android:scheme="https"
+                    android:host="sms.commandus.com" />
             </intent-filter>
         </activity>
         <service android:name="com.commandus.sms2gsheets.SberbankSmsService"></service>

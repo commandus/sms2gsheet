@@ -1,6 +1,8 @@
 <resources>
-    <string name="app_name">Sberbank SMS</string>
+    <string name="app_name">SMS Archiver</string>
     <string name="action_settings">Settings</string>
     <string name="MSG_REQUEST_SMS_RECEIVE">Request SMS receive rights</string>
     <string name="text_button_sign_sheets">Sign</string>
+    <string name="format_new_spreadsheet_name">SMS</string>
+    <string name="format_new_sheet_name">Log</string>
 </resources>

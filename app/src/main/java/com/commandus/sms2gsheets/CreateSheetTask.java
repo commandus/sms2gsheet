@@ -7,25 +7,33 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccoun
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.AppendValuesResponse;
+import com.google.api.services.sheets.v4.model.Sheet;
+import com.google.api.services.sheets.v4.model.Spreadsheet;
+import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
 
 /**
  * Append rows to the Google Sheet
  */
 
-public class AppendRowsTask extends AsyncTask<Void, Void, AppendValuesResponse> {
-    private static final String TAG = AppendRowsTask.class.getSimpleName();
-    private com.google.api.services.sheets.v4.Sheets mService = null;
+public class CreateSheetTask extends AsyncTask<Void, Void, Spreadsheet> {
+    private static final String TAG = CreateSheetTask.class.getSimpleName();
+    private Sheets mService = null;
     private Exception mLastError = null;
 
-    private GoogleSheetsAppendResponseReceiver mReceiver;
+    private GoogleSheetsCreateResponseReceiver mReceiver;
+    private String mTitle;
 
-    AppendRowsTask(
+    CreateSheetTask(
             GoogleAccountCredential credential,
-            GoogleSheetsAppendResponseReceiver receiver
+            String title,
+            String sheetTitle,
+            GoogleSheetsCreateResponseReceiver receiver
     )
     {
         mReceiver = receiver;
+        mTitle = title;
 
         HttpTransport transport = AndroidHttp.newCompatibleTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
@@ -40,10 +48,15 @@ public class AppendRowsTask extends AsyncTask<Void, Void, AppendValuesResponse> 
      * @param params no parameters needed for this task.
      */
     @Override
-    protected AppendValuesResponse doInBackground(Void... params) {
+    protected Spreadsheet doInBackground(Void... params) {
         try {
-            AppendValuesResponse response;
-            return mReceiver.append_rows(this.mService);
+            Spreadsheet requestBody = new Spreadsheet();
+            SpreadsheetProperties props = new SpreadsheetProperties();
+            props.setTitle(mTitle);
+            requestBody.setProperties(props);
+            Sheets.Spreadsheets.Create request = mService.spreadsheets().create(requestBody);
+            return request.execute();
+
         } catch (Exception e) {
             mLastError = e;
             cancel(true);
@@ -57,9 +70,9 @@ public class AppendRowsTask extends AsyncTask<Void, Void, AppendValuesResponse> 
     }
 
     @Override
-    protected void onPostExecute(AppendValuesResponse output) {
+    protected void onPostExecute(Spreadsheet output) {
         mReceiver.onStop();
-        mReceiver.onAppend(output);
+        mReceiver.onCreate(output);
     }
 
     @Override
