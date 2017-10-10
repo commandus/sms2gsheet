@@ -18,7 +18,6 @@ public class SMSReceiver extends BroadcastReceiver {
                 return;
             SmsMessage[] messages = new SmsMessage[pduArray.length];
             for (int i = 0; i < pduArray.length; i++) {
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     String format = intent.getStringExtra("format");
                     if (format == null)
@@ -29,17 +28,17 @@ public class SMSReceiver extends BroadcastReceiver {
                 }
             }
             String sms_from = messages[0].getDisplayOriginatingAddress();
-            if (sms_from.equalsIgnoreCase("900")) {
-                StringBuilder bodyText = new StringBuilder();
-                for (int i = 0; i < messages.length; i++) {
-                    bodyText.append(messages[i].getMessageBody());
-                }
-                String body = bodyText.toString();
-                Intent mIntent = new Intent(context, SberbankSmsService.class);
-                mIntent.putExtra("body", body);
-                context.startService(mIntent);
-                abortBroadcast();
+            StringBuilder bodyText = new StringBuilder();
+            for (SmsMessage m : messages) {
+                bodyText.append(m.getMessageBody());
             }
+            String body = bodyText.toString();
+
+            Intent mIntent = new Intent(context, SberbankSmsService.class);
+            mIntent.putExtra(SberbankSmsService.PAR_FROM, sms_from);
+            mIntent.putExtra(SberbankSmsService.PAR_BODY, body);
+            context.startService(mIntent);
+            abortBroadcast();
         }
     }
 }

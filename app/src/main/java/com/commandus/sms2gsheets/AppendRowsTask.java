@@ -10,10 +10,10 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 
 /**
- * Append rows to the Google Sheet
+ *  Append rows to the Google Sheet AsyncTask
  */
 
-public class AppendRowsTask extends AsyncTask<Void, Void, AppendValuesResponse> {
+class AppendRowsTask extends AsyncTask<Void, Void, AppendValuesResponse> {
     private static final String TAG = AppendRowsTask.class.getSimpleName();
     private com.google.api.services.sheets.v4.Sheets mService = null;
     private Exception mLastError = null;

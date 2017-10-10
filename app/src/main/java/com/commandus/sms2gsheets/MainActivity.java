@@ -4,7 +4,6 @@ import android.Manifest;
 import android.accounts.AccountManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -18,11 +17,13 @@ import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.telephony.SmsManager;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,13 +38,14 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.AppendValuesResponse;
 import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
-import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -52,9 +54,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     private static final int PERMISSIONS_REQUESTS = 1;
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
-    private static final String SHEET_RANGE = "A2:F";
+    private static final String SHEET_RANGE = "A:C";
 
     GoogleAccountCredential mCredential;
 
@@ -62,58 +63,46 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
-    private Button mCallApiButton;
+
+    private ApplicationSettings mSettings;
+
     private TextView mTextSign;
     private ContentLoadingProgressBar mProgress;
-    private ApplicationSettings mSettings;
-    private String mNewSpreadSheetTitle;
-    private String mNewSheetTitle;
+
+    private List<CreateSheetTask> mCreateSheetTasks;
+    private List<AppendRowsTask> mAppendRowsTask;
+    private FloatingActionButton mFabNewSpreadsheet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mCreateSheetTasks = new ArrayList<>() ;
+        mAppendRowsTask = new ArrayList<>();
         mSettings = ApplicationSettings.getInstance(this);
 
-        mNewSpreadSheetTitle = getString(R.string.format_new_spreadsheet_name);
-        mNewSheetTitle = getString(R.string.format_new_sheet_name);
-
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         mProgress = findViewById(R.id.progress_bar_sheets);
 
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        mFabNewSpreadsheet = findViewById(R.id.fabNewSpreadsheet);
+        mFabNewSpreadsheet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Справка", Snackbar.LENGTH_LONG)
-                        .setAction("Создать", new View.OnClickListener() {
+                Snackbar.make(view, R.string.label_create_spreadsheet, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.label_add_spreadsheet, new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
                                 createSpreadsheet();
+                                startNextTask();
                             }
                         })
                         .show();
             }
         });
 
-        /*
-                                .setAction("Добавить", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                append_sms();
-                            }
-                        })
-                        .setAction("900", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                sendSMSMessage("Справка");
-                            }
-                        })
-
-         */
 
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS);
         if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
@@ -130,20 +119,69 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
 
         mTextSign = findViewById(R.id.text_sign);
-        mCallApiButton = findViewById(R.id.button_sign);
-        mCallApiButton.setOnClickListener(new View.OnClickListener() {
+        /*
+        mTextSign.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                mCallApiButton.setEnabled(false);
+            public void onClick(View view) {
+                mTextSign.setEnabled(false);
                 mTextSign.setText("");
-                append_sms();
-                mCallApiButton.setEnabled(true);
+                appendSms();
+                startNextTask();
+                mTextSign.setEnabled(true);
             }
         });
-
+        */
         // Initialize credentials and service object.
         mCredential = GoogleAccountCredential.usingOAuth2(getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
+
+        invalidateSpreadsheet();
+    }
+
+    private void invalidateSpreadsheet() {
+        String uid = mSettings.getAccountName();
+        if ((uid != null) && (!uid.isEmpty())) {
+            mFabNewSpreadsheet.setVisibility(View.VISIBLE);
+        }
+        else {
+            mFabNewSpreadsheet.setVisibility(View.INVISIBLE);
+        }
+
+        String ss = mSettings.getSpreadsheetId();
+        if ((ss != null) && (!ss.isEmpty())) {
+            mTextSign.setMovementMethod(LinkMovementMethod.getInstance());
+            String p = "<a href=\"https://docs.google.com/spreadsheets/d/" + ss + "/edit#gid=0\">"
+                    + getString(R.string.link_spreadsheet) + "</a>";
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                mTextSign.setText(Html.fromHtml(p, Html.FROM_HTML_MODE_LEGACY));
+            } else {
+                mTextSign.setText(Html.fromHtml(p));
+            }
+            mTextSign.setEnabled(true);
+            Log.i(TAG, p);
+        }
+        else {
+            mTextSign.setEnabled(false);
+        }
+    }
+
+    private void startNextTask()
+    {
+        if (mCreateSheetTasks.size() > 0) {
+            if (checkNetworkNCredentials()) {
+                CreateSheetTask t = mCreateSheetTasks.get(0);
+                mCreateSheetTasks.remove(0);
+                t.execute();
+            }
+        } else {
+            if (mAppendRowsTask.size() > 0) {
+                if (checkNetworkNCredentials()) {
+                    AppendRowsTask t = mAppendRowsTask.get(0);
+                    mAppendRowsTask.remove(0);
+                    t.execute();
+                }
+            }
+        }
     }
 
     public void requestPermissions() {
@@ -171,15 +209,23 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     private void createSpreadsheet() {
         // create a new spreadsheet
-        create_new();
+        mCreateSheetTasks.add(create_new());
     }
 
-    private void append_sms() {
+    private void appendHeader() {
         ArrayList<String> row = new ArrayList<>();
-        row.add("5");
-        row.add("6");
-        row.add("7");
-        append_row(row);
+        row.add(getString(R.string.sheet_header_date));
+        row.add(getString(R.string.sheet_header_from));
+        row.add(getString(R.string.sheet_header_body));
+        mAppendRowsTask.add(append_row(row));
+    }
+
+    private void appendSms() {
+        ArrayList<String> row = new ArrayList<>();
+        row.add(android.text.format.DateFormat.getDateFormat(this).format(new Date()));
+        row.add("Unknown");
+        row.add("Blah-blah-blah");
+        mAppendRowsTask.add(append_row(row));
     }
 
     private void sendSMSMessage(String message) {
@@ -198,151 +244,146 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
+    private boolean checkNetworkNCredentials() {
+        if (!isGooglePlayServicesAvailable()) {
+            acquireGooglePlayServices();
+            return false;
+        } else if (mCredential.getSelectedAccountName() == null) {
+            chooseAccount();
+            return false;
+        } else if (!isDeviceOnline()) {
+            mTextSign.setText(R.string.err_no_internet);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * create a new spreadsheet
      */
-    private void create_new(
-    ) {
-        if (! isGooglePlayServicesAvailable()) {
-            acquireGooglePlayServices();
-        } else if (mCredential.getSelectedAccountName() == null) {
-            chooseAccount();
-        } else if (!isDeviceOnline()) {
-            mTextSign.setText("No network connection available.");
-        } else {
-            // new ListRequestTask(mCredential).execute();
-            new CreateSheetTask(mCredential,
-                    mNewSpreadSheetTitle,
-                    mNewSheetTitle,
-                    new GoogleSheetsCreateResponseReceiver() {
-                @Override
-                public void onStart() {
-                    mTextSign.setText("");
-                    mProgress.show();
-                }
+    private CreateSheetTask create_new() {
+        return new CreateSheetTask(mCredential,
+                getString(R.string.format_new_spreadsheet_name),
+                getString(R.string.format_new_sheet_name),
+                new GoogleSheetsCreateResponseReceiver() {
+            @Override
+            public void onStart() {
+                mTextSign.setText("");
+                mProgress.show();
+            }
 
-                @Override
-                public void onStop() {
-                    mProgress.hide();
-                }
+            @Override
+            public void onStop() {
+                mProgress.hide();
+            }
 
-                @Override
-                public void onCreate(Spreadsheet response) {
-                    if (response == null) {
-                        mTextSign.setText("No results returned.");
-                    } else {
-                        mTextSign.setText(response.toString());
-                        mSettings.setSpreadsheetId(response.getSpreadsheetId());
-                        List<Sheet> sheets = response.getSheets();
-                        if (sheets.size() > 0) {
-                            mSettings.setSheet(sheets.get(0).getProperties().getTitle());
-                        }
-                        else
-                            mSettings.setSheet("");
+            @Override
+            public void onCreate(Spreadsheet response) {
+                if (response == null) {
+                    mTextSign.setText(R.string.err_no_response);
+                } else {
+                    mTextSign.setText(response.toString());
+                    mSettings.setSpreadsheetId(response.getSpreadsheetId());
+                    List<Sheet> sheets = response.getSheets();
+                    if (sheets.size() > 0) {
+                        mSettings.setSheet(sheets.get(0).getProperties().getTitle());
                     }
-                    mSettings.save(MainActivity.this);
+                    else
+                        mSettings.setSheet("");
                 }
+                mSettings.save(MainActivity.this);
+                appendHeader();
+                startNextTask();
+            }
 
-                @Override
-                public void onCancel(Exception error) {
-                    if (error instanceof GooglePlayServicesAvailabilityIOException) {
-                        Helper.showGooglePlayServicesAvailabilityErrorDialog(
-                                MainActivity.this,
-                                MainActivity.REQUEST_GOOGLE_PLAY_SERVICES,
-                                ((GooglePlayServicesAvailabilityIOException) error)
-                                        .getConnectionStatusCode());
-                    } else if (error instanceof UserRecoverableAuthIOException) {
-                        MainActivity.this.startActivityForResult(
-                                ((UserRecoverableAuthIOException) error).getIntent(),
-                                MainActivity.REQUEST_AUTHORIZATION);
-                    } else {
-                        mTextSign.setText("The following error occurred:\n"
-                                + error.getMessage());
-                    }
+            @Override
+            public void onCancel(Exception error) {
+                if (error instanceof GooglePlayServicesAvailabilityIOException) {
+                    Helper.showGooglePlayServicesAvailabilityErrorDialog(
+                            MainActivity.this,
+                            MainActivity.REQUEST_GOOGLE_PLAY_SERVICES,
+                            ((GooglePlayServicesAvailabilityIOException) error)
+                                    .getConnectionStatusCode());
+                } else if (error instanceof UserRecoverableAuthIOException) {
+                    MainActivity.this.startActivityForResult(
+                            ((UserRecoverableAuthIOException) error).getIntent(),
+                            MainActivity.REQUEST_AUTHORIZATION);
+                } else {
+                    String m = getString(R.string.err_message) + error.getMessage();
+                    mTextSign.setText(m);
                 }
-            }).execute();
-        }
+            }
+        });
     }
 
     /**
      * append a new record to the spreadsheet
      */
-    private void append_row(
+    private AppendRowsTask append_row(
             final List<String> row
     ) {
-        if (! isGooglePlayServicesAvailable()) {
-            acquireGooglePlayServices();
-        } else if (mCredential.getSelectedAccountName() == null) {
-            chooseAccount();
-        } else if (!isDeviceOnline()) {
-            mTextSign.setText("No network connection available.");
-        } else {
-            // new ListRequestTask(mCredential).execute();
-            new AppendRowsTask(mCredential, new GoogleSheetsAppendResponseReceiver() {
-                @Override
-                public AppendValuesResponse append_rows(Sheets sheets) throws IOException {
-                    String range;
-                    if (mSettings.getSheet().isEmpty())
-                        range = SHEET_RANGE;
-                    else
-                        range = mSettings.getSheet() + "!" + SHEET_RANGE;
-                    ValueRange vals = new ValueRange();
-                    vals.setMajorDimension("ROWS");
-                    List<List<Object>> vls;
-                    vls = new ArrayList<>();
-                    ArrayList<Object> ro = new ArrayList<Object>();
-                    for (String rr : row) {
-                        ro.add(rr);
-                    }
-                    vls.add(ro);
-                    vals.setValues(vls);
-                    Sheets.Spreadsheets.Values.Append r = sheets.spreadsheets().values().append(
-                            mSettings.getSpreadsheetId(), range, vals);
-                    r.setValueInputOption("RAW");
-                    AppendValuesResponse response = r.execute();
-                    Log.i(TAG, response.toString());
-                    return response;
+        return new AppendRowsTask(mCredential, new GoogleSheetsAppendResponseReceiver() {
+            @Override
+            public AppendValuesResponse append_rows(Sheets sheets) throws IOException {
+                String range;
+                range = SHEET_RANGE;
+                ValueRange vals = new ValueRange();
+                vals.setMajorDimension("ROWS");
+                List<List<Object>> vls;
+                vls = new ArrayList<>();
+                ArrayList<Object> ro = new ArrayList<>();
+                for (String rr : row) {
+                    ro.add(rr);
                 }
+                vls.add(ro);
+                vals.setValues(vls);
+                Sheets.Spreadsheets.Values.Append r = sheets.spreadsheets().values().append(
+                        mSettings.getSpreadsheetId(), range, vals);
+                r.setValueInputOption("RAW");
+                AppendValuesResponse response = r.execute();
+                Log.i(TAG, response.toString());
+                return response;
+            }
 
-                @Override
-                public void onStart() {
-                    mTextSign.setText("");
-                    mProgress.show();
-                }
+            @Override
+            public void onStart() {
+                mTextSign.setText("");
+                mProgress.show();
+            }
 
-                @Override
-                public void onStop() {
-                    mProgress.hide();
-                }
+            @Override
+            public void onStop() {
+                mProgress.hide();
+            }
 
-                @Override
-                public void onAppend(AppendValuesResponse response) {
-                    if (response == null) {
-                        mTextSign.setText("No results returned.");
-                    } else {
-                        mTextSign.setText(response.toString());
-                    }
+            @Override
+            public void onAppend(AppendValuesResponse response) {
+                if (response == null) {
+                    mTextSign.setText(R.string.err_no_response);
+                } else {
+                    mTextSign.setText(response.toString());
                 }
+                startNextTask();
+            }
 
-                @Override
-                public void onCancel(Exception error) {
-                    if (error instanceof GooglePlayServicesAvailabilityIOException) {
-                        Helper.showGooglePlayServicesAvailabilityErrorDialog(
-                                MainActivity.this,
-                                MainActivity.REQUEST_GOOGLE_PLAY_SERVICES,
-                                ((GooglePlayServicesAvailabilityIOException) error)
-                                        .getConnectionStatusCode());
-                    } else if (error instanceof UserRecoverableAuthIOException) {
-                        MainActivity.this.startActivityForResult(
-                                ((UserRecoverableAuthIOException) error).getIntent(),
-                                MainActivity.REQUEST_AUTHORIZATION);
-                    } else {
-                        mTextSign.setText("The following error occurred:\n"
-                                + error.getMessage());
-                    }
+            @Override
+            public void onCancel(Exception error) {
+                if (error instanceof GooglePlayServicesAvailabilityIOException) {
+                    Helper.showGooglePlayServicesAvailabilityErrorDialog(
+                            MainActivity.this,
+                            MainActivity.REQUEST_GOOGLE_PLAY_SERVICES,
+                            ((GooglePlayServicesAvailabilityIOException) error)
+                                    .getConnectionStatusCode());
+                } else if (error instanceof UserRecoverableAuthIOException) {
+                    MainActivity.this.startActivityForResult(
+                            ((UserRecoverableAuthIOException) error).getIntent(),
+                            MainActivity.REQUEST_AUTHORIZATION);
+                } else {
+                    String m = getString(R.string.err_message) + error.getMessage();
+                    mTextSign.setText(m);
                 }
-            }).execute();
-        }
+            }
+        });
     }
 
     @Override
@@ -397,7 +438,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
-
     /**
      * Checks whether the device currently has a network connection.
      * @return true if the device has a network connection, false otherwise.
@@ -423,11 +463,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private void chooseAccount() {
         if (EasyPermissions.hasPermissions(
                 this, Manifest.permission.GET_ACCOUNTS)) {
-            String accountName = getPreferences(Context.MODE_PRIVATE)
-                    .getString(PREF_ACCOUNT_NAME, null);
-            if (accountName != null) {
+            String accountName = mSettings.getAccountName();
+            if ((accountName != null) && (!accountName.isEmpty())) {
                 mCredential.setSelectedAccountName(accountName);
-                append_sms();
+                startNextTask();
             } else {
                 // Start a dialog from which the user can choose an account
                 startActivityForResult(
@@ -474,11 +513,9 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         switch(requestCode) {
             case REQUEST_GOOGLE_PLAY_SERVICES:
                 if (resultCode != RESULT_OK) {
-                    mTextSign.setText(
-                            "This app requires Google Play Services. Please install " +
-                                    "Google Play Services on your device and relaunch this app.");
+                    mTextSign.setText(R.string.err_no_playservices);
                 } else {
-                    append_sms();
+                    startNextTask();
                 }
                 break;
             case REQUEST_ACCOUNT_PICKER:
@@ -486,20 +523,17 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         data.getExtras() != null) {
                     String accountName =
                             data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-                    if (accountName != null) {
-                        SharedPreferences settings =
-                                getPreferences(Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = settings.edit();
-                        editor.putString(PREF_ACCOUNT_NAME, accountName);
-                        editor.apply();
+                    if ((accountName != null) && (!accountName.isEmpty())) {
+                        mSettings.setAccountName(accountName);
+                        mSettings.save(this);
                         mCredential.setSelectedAccountName(accountName);
-                        append_sms();
+                        startNextTask();
                     }
                 }
                 break;
             case REQUEST_AUTHORIZATION:
                 if (resultCode == RESULT_OK) {
-                    append_sms();
+                    startNextTask();
                 }
                 break;
         }

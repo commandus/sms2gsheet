@@ -7,10 +7,11 @@ import java.io.IOException;
 
 /**
  * ListRequestTask interface
+ *
  * @see android.os.AsyncTask
  */
 
-public interface GoogleSheetsAppendResponseReceiver {
+interface GoogleSheetsAppendResponseReceiver {
     AppendValuesResponse append_rows(Sheets sheets) throws IOException;
     void onStart();
     void onStop();

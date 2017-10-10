@@ -8,8 +8,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.model.AppendValuesResponse;
-import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
 
@@ -17,7 +15,7 @@ import com.google.api.services.sheets.v4.model.SpreadsheetProperties;
  * Append rows to the Google Sheet
  */
 
-public class CreateSheetTask extends AsyncTask<Void, Void, Spreadsheet> {
+class CreateSheetTask extends AsyncTask<Void, Void, Spreadsheet> {
     private static final String TAG = CreateSheetTask.class.getSimpleName();
     private Sheets mService = null;
     private Exception mLastError = null;

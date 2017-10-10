@@ -1,8 +1,24 @@
 <resources>
-    <string name="app_name">SMS Archiver</string>
+    <string name="app_name">SMS Archive</string>
     <string name="action_settings">Settings</string>
+    <string name="link_spreadsheet">View spreadsheet</string>
     <string name="MSG_REQUEST_SMS_RECEIVE">Request SMS receive rights</string>
     <string name="text_button_sign_sheets">Sign</string>
     <string name="format_new_spreadsheet_name">SMS</string>
     <string name="format_new_sheet_name">Log</string>
+    <string name="err_no_internet">No network connection available.</string>
+    <string name="err_no_playservices">This app requires Google Play Services. Please install Google Play Services on your device and relaunch this app.</string>
+    <string name="err_no_response">No results returned.</string>
+    <string name="err_message">Error:</string>
+    <string name="msg_from">From:</string>
+    <string name="sheet_header_date">Date</string>
+    <string name="sheet_header_from">From</string>
+    <string name="sheet_header_body">Text</string>
+    <string name="msg_response">Response:</string>
+    <string name="err_no_credentials">No credentials</string>
+    <string name="notification_channel_name">SMS</string>
+    <string name="notification_channel_id">com.commandus.sms2gsheets</string>
+    <string name="msg_sign_in">Please sign in</string>
+    <string name="label_create_spreadsheet">New spreadsheet</string>
+    <string name="label_add_spreadsheet">Add</string>
 </resources>
