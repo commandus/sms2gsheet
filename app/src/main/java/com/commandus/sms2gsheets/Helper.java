@@ -31,6 +31,7 @@ class Helper {
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
     static final String SHEET_RANGE = "A:D";
     private static final String TAG = Helper.class.getSimpleName();
+    private static int icon = R.drawable.ic_stat_512x512;
 
     /**
      * Checks whether the device currently has a network connection.
@@ -76,14 +77,14 @@ class Helper {
                     .setContentTitle(context.getString(R.string.msg_from) + from)
                     .setContentText(body)
                     .setContentIntent(contentIntent)
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(icon)
                     .setAutoCancel(true);
         } else {
             builder = new Notification.Builder(context)
                     .setContentTitle(context.getString(R.string.msg_from) + from)
                     .setContentText(body)
                     .setContentIntent(contentIntent)
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(icon)
                     .setAutoCancel(true);
         }
 
@@ -94,7 +95,7 @@ class Helper {
             notification = builder.getNotification();
         }
 
-        notificationManager.notify(R.mipmap.ic_launcher, notification);
+        notificationManager.notify(icon, notification);
     }
 
     static void showNotificationError(Context context, String error) {
@@ -103,7 +104,7 @@ class Helper {
                 .setContentTitle(context.getString(R.string.err_message) + error)
                 .setContentText(error)
                 .setContentIntent(contentIntent)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(icon)
                 .setAutoCancel(true);
         NotificationManager notificationManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         Notification notification;
@@ -112,7 +113,7 @@ class Helper {
         } else {
             notification = builder.getNotification();
         }
-        notificationManager.notify(R.mipmap.ic_launcher, notification);
+        notificationManager.notify(icon, notification);
     }
 
     /**
@@ -120,8 +121,8 @@ class Helper {
      */
     static AppendRowsTask appendRow(
             final Context context,
-            final List<String> row
-    ) {
+            final List<String> row,
+            final List<AppendRowsTask> taskList) {
         final ApplicationSettings settings = ApplicationSettings.getInstance(context);
         String accountName = settings.getAccountName();
         if ((accountName == null) || (accountName.isEmpty())) {
@@ -172,6 +173,10 @@ class Helper {
                     Log.e(TAG, context.getString(R.string.err_no_response));
                 } else {
                     Log.i(TAG, context.getString(R.string.msg_response) + response.toString());
+                }
+                if (taskList != null) {
+                    if (taskList.size() > 0)
+                        taskList.remove(0);
                 }
             }
 

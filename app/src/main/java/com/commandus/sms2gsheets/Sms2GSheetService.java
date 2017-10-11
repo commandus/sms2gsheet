@@ -1,10 +1,6 @@
 package com.commandus.sms2gsheets;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -24,15 +20,13 @@ public class Sms2GSheetService extends Service {
         return null;
     }
 
-    private List<AppendRowsTask> mAppendRowsTask = new ArrayList<>();
-
+    private List<AppendRowsTask> mAppendRowsTasks = new ArrayList<>();
 
     private void startNextTask()
     {
-        if (mAppendRowsTask.size() > 0) {
+        if (mAppendRowsTasks.size() > 0) {
             if (Helper.isDeviceOnline(this)) {
-                AppendRowsTask t = mAppendRowsTask.get(0);
-                mAppendRowsTask.remove(0);
+                AppendRowsTask t = mAppendRowsTasks.get(0);
                 t.execute();
             }
         }
@@ -56,11 +50,11 @@ public class Sms2GSheetService extends Service {
         row.add(android.text.format.DateFormat.getTimeFormat(this).format(date));
         row.add(from);
         row.add(sms_body);
-        AppendRowsTask t = Helper.appendRow(this, row);
+        AppendRowsTask t = Helper.appendRow(this, row, mAppendRowsTasks);
         if (t == null) {
             Helper.showNotificationError(this, getString(R.string.err_no_credentials));
         } else {
-            mAppendRowsTask.add(t);
+            mAppendRowsTasks.add(t);
             startNextTask();
         }
     }
