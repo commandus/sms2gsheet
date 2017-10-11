@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 
 class Helper {
-    private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
+    static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
     static final String SHEET_RANGE = "A:D";
     private static final String TAG = Helper.class.getSimpleName();
     private static int icon = R.drawable.ic_stat_512x512;
@@ -114,86 +114,6 @@ class Helper {
             notification = builder.getNotification();
         }
         notificationManager.notify(icon, notification);
-    }
-
-    /**
-     * append a new record to the spreadsheet
-     */
-    static AppendRowsTask appendRow(
-            final Context context,
-            final List<String> row,
-            final List<AppendRowsTask> taskList) {
-        final ApplicationSettings settings = ApplicationSettings.getInstance(context);
-        String accountName = settings.getAccountName();
-        if ((accountName == null) || (accountName.isEmpty())) {
-            return null;
-        }
-
-        // Initialize credentials and service object.
-        GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(context, Arrays.asList(SCOPES))
-                .setBackOff(new ExponentialBackOff());
-
-            credential.setSelectedAccountName(accountName);
-
-        return new AppendRowsTask(credential, new GoogleSheetsAppendResponseReceiver() {
-            @Override
-            public AppendValuesResponse append_rows(Sheets sheets) throws IOException {
-                String range;
-                range = SHEET_RANGE;
-                ValueRange vals = new ValueRange();
-                vals.setMajorDimension("ROWS");
-                List<List<Object>> vls;
-                vls = new ArrayList<>();
-                ArrayList<Object> ro = new ArrayList<>();
-                for (String rr : row) {
-                    ro.add(rr);
-                }
-                vls.add(ro);
-                vals.setValues(vls);
-                Sheets.Spreadsheets.Values.Append r = sheets.spreadsheets().values().append(
-                        settings.getSpreadsheetId(), range, vals);
-                r.setValueInputOption("RAW");
-                AppendValuesResponse response = r.execute();
-                Log.i(TAG, response.toString());
-                return response;
-            }
-
-            @Override
-            public void onStart() {
-            }
-
-            @Override
-            public void onStop() {
-            }
-
-            @Override
-            public void onAppend(AppendValuesResponse response) {
-                if (response == null) {
-                    Helper.showNotificationError(context, context.getString(R.string.err_no_response));
-                    Log.e(TAG, context.getString(R.string.err_no_response));
-                } else {
-                    Log.i(TAG, context.getString(R.string.msg_response) + response.toString());
-                }
-                if (taskList != null) {
-                    if (taskList.size() > 0)
-                        taskList.remove(0);
-                }
-            }
-
-            @Override
-            public void onCancel(Exception error) {
-                if (error instanceof GooglePlayServicesAvailabilityIOException) {
-                    Helper.showNotificationError(context, context.getString(R.string.err_no_playservices));
-                    Log.e(TAG, context.getString(R.string.err_no_playservices));
-                } else if (error instanceof UserRecoverableAuthIOException) {
-                    Helper.showNotificationError(context, context.getString(R.string.err_no_credentials));
-                    Log.e(TAG, context.getString(R.string.err_no_credentials));
-                } else {
-                    Helper.showNotificationError(context, context.getString(R.string.err_message) + error.getMessage());
-                    Log.e(TAG, context.getString(R.string.err_message) + error.getMessage());
-                }
-            }
-        });
     }
 
 }

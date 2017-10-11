@@ -32,7 +32,6 @@ android {
             signingConfig signingConfigs.config
         }
         debug {
-            signingConfig signingConfigs.config
         }
     }
 }
@@ -45,7 +44,6 @@ dependencies {
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:26.+'
-
     compile 'com.google.android.gms:play-services-auth:11.4.0'
     compile 'pub.devrel:easypermissions:0.3.0'
     compile('com.google.api-client:google-api-client-android:1.22.0') {
@@ -55,6 +53,5 @@ dependencies {
         exclude group: 'org.apache.httpcomponents'
     }
     compile 'com.google.android.gms:play-services:11.4.0'
-
     testCompile 'junit:junit:4.12'
 }

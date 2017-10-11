@@ -2,11 +2,8 @@ package com.commandus.sms2gsheets;
 
 import android.Manifest;
 import android.accounts.AccountManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -41,6 +38,7 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
@@ -65,16 +63,17 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private TextView mTextSign;
     private ContentLoadingProgressBar mProgress;
 
-    private List<CreateSheetTask> mCreateSheetTasks;
-    private List<AppendRowsTask> mAppendRowsTask;
+    private int mNeedCreateNewSpreadsheet;
+    private Integer mSequence = 0;
+    private HashMap<Integer, List<String> > mSMSRows;
     private FloatingActionButton mFabNewSpreadsheet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mCreateSheetTasks = new ArrayList<>() ;
-        mAppendRowsTask = new ArrayList<>();
+        mNeedCreateNewSpreadsheet = 0;
+        mSMSRows = new HashMap<>();
         mSettings = ApplicationSettings.getInstance(this);
 
         setContentView(R.layout.activity_main);
@@ -92,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                             @Override
                             public void onClick(View view) {
                                 // create a new spreadsheet
-                                mCreateSheetTasks.add(create_new());
+                                mNeedCreateNewSpreadsheet = 1;
                                 startNextTask();
                             }
                         })
@@ -158,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 public void onClick(View view) {
                     // create a new spreadsheet
                     mTextSign.setEnabled(false);
-                    mCreateSheetTasks.add(create_new());
+                    mNeedCreateNewSpreadsheet = 1;
                     startNextTask();
                 }
             });
@@ -169,18 +168,18 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private void startNextTask()
     {
         invalidateSpreadsheet();
-        if (mCreateSheetTasks.size() > 0) {
-            if (checkNetworkNCredentials()) {
-                CreateSheetTask t = mCreateSheetTasks.get(0);
-                t.execute();
-            }
+        if (!checkNetworkNCredentials()) {
+            return;
+        }
+        if (mNeedCreateNewSpreadsheet == 1) {
+            mNeedCreateNewSpreadsheet = 2;  // in progress already, do not start twice!
+            CreateSheetTask t = create_new();
+            t.execute();
         } else {
-            if (mAppendRowsTask.size() > 0) {
-                if (checkNetworkNCredentials()) {
-                    AppendRowsTask t = mAppendRowsTask.get(0);
-                    mAppendRowsTask.remove(0);
-                    t.execute();
-                }
+            for (Integer seq : mSMSRows.keySet()) {
+                AppendRowsTask t = append_row(seq, mSMSRows.get(seq));
+                t.execute();
+                break; // just first one, after success it starts again
             }
         }
     }
@@ -275,16 +274,18 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 }
                 mSettings.save(MainActivity.this);
 
-                ArrayList<String> row = new ArrayList<>();
-                row.add(getString(R.string.sheet_header_date));
-                row.add(getString(R.string.sheet_header_time));
-                row.add(getString(R.string.sheet_header_from));
-                row.add(getString(R.string.sheet_header_body));
-                mAppendRowsTask.add(append_row(row));
+                // Add task to add header
+                ArrayList<String> sms_row = new ArrayList<>();
+                sms_row.add(getString(R.string.sheet_header_date));
+                sms_row.add(getString(R.string.sheet_header_time));
+                sms_row.add(getString(R.string.sheet_header_from));
+                sms_row.add(getString(R.string.sheet_header_body));
+                mSequence++;
+                mSMSRows.put(mSequence, sms_row);
 
-                // no more need to crreaste anre spreadsheet
-                mCreateSheetTasks.clear();
-                startNextTask();
+                // no more need to create spreadsheet
+                mNeedCreateNewSpreadsheet = 0;
+                startNextTask();    // invalidate
             }
 
             @Override
@@ -300,9 +301,11 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                             ((UserRecoverableAuthIOException) error).getIntent(),
                             MainActivity.REQUEST_AUTHORIZATION);
                 } else {
-                    String m = getString(R.string.err_message) + error.getMessage();
-                    mTextSign.setText(getString(R.string.err_create_spreadsheet));
+                    String m = getString(R.string.err_create_spreadsheet) + "\n" + error.toString();
+                    mTextSign.setText(m);
+                    Log.e(TAG, m);
                 }
+                mNeedCreateNewSpreadsheet = 0;
             }
         });
     }
@@ -311,25 +314,27 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
      * append a new record to the spreadsheet
      */
     private AppendRowsTask append_row(
-            final List<String> row
-    ) {
+            final int sequence,
+            final List<String> row) {
         return new AppendRowsTask(mCredential, new GoogleSheetsAppendResponseReceiver() {
             @Override
             public AppendValuesResponse append_rows(Sheets sheets) throws IOException {
                 String range;
                 range = Helper.SHEET_RANGE;
-                ValueRange vals = new ValueRange();
-                vals.setMajorDimension("ROWS");
+                ValueRange values = new ValueRange();
+                values.setMajorDimension("ROWS");
                 List<List<Object>> vls;
                 vls = new ArrayList<>();
                 ArrayList<Object> ro = new ArrayList<>();
-                for (String rr : row) {
-                    ro.add(rr);
+                if (row != null) {
+                    for (String rr : row) {
+                        ro.add(rr);
+                    }
                 }
                 vls.add(ro);
-                vals.setValues(vls);
+                values.setValues(vls);
                 Sheets.Spreadsheets.Values.Append r = sheets.spreadsheets().values().append(
-                        mSettings.getSpreadsheetId(), range, vals);
+                        mSettings.getSpreadsheetId(), range, values);
                 r.setValueInputOption("RAW");
                 AppendValuesResponse response = r.execute();
                 Log.i(TAG, response.toString());
@@ -353,6 +358,13 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                     mTextSign.setText(R.string.err_no_response);
                 } else {
                     mTextSign.setText(R.string.msg_spreadsheet_created);
+                }
+                if (mSMSRows != null) {
+                    if (!mSMSRows.containsKey(sequence)) {
+                        Log.e(TAG, "Invalid sequence");
+                    } else {
+                        mSMSRows.remove(sequence);
+                    }
                 }
                 startNextTask();
             }
@@ -499,7 +511,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 if (resultCode != RESULT_OK) {
                     mTextSign.setText(R.string.err_no_playservices);
                 } else {
-                    startNextTask();
                 }
                 break;
             case REQUEST_ACCOUNT_PICKER:
@@ -511,16 +522,15 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         mSettings.setAccountName(accountName);
                         mSettings.save(this);
                         mCredential.setSelectedAccountName(accountName);
-                        startNextTask();
                     }
                 }
                 break;
             case REQUEST_AUTHORIZATION:
                 if (resultCode == RESULT_OK) {
-                    startNextTask();
                 }
                 break;
         }
+        startNextTask();
     }
 
     /**
@@ -532,7 +542,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
      */
     @Override
     public void onPermissionsGranted(int requestCode, List<String> list) {
-        // Do nothing.
+        startNextTask();
     }
 
     /**
