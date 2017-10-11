@@ -1,17 +1,18 @@
 <resources>
-    <string name="app_name">SMS Archive</string>
+    <string name="app_name">SMS spreadsheet</string>
     <string name="action_settings">Settings</string>
     <string name="link_spreadsheet">View spreadsheet</string>
     <string name="MSG_REQUEST_SMS_RECEIVE">Request SMS receive rights</string>
     <string name="text_button_sign_sheets">Sign</string>
     <string name="format_new_spreadsheet_name">SMS</string>
-    <string name="format_new_sheet_name">Log</string>
+    <string name="format_new_sheet_name">Sheet</string>
     <string name="err_no_internet">No network connection available.</string>
     <string name="err_no_playservices">This app requires Google Play Services. Please install Google Play Services on your device and relaunch this app.</string>
     <string name="err_no_response">No results returned.</string>
     <string name="err_message">Error:</string>
     <string name="msg_from">From:</string>
     <string name="sheet_header_date">Date</string>
+    <string name="sheet_header_time">Time</string>
     <string name="sheet_header_from">From</string>
     <string name="sheet_header_body">Text</string>
     <string name="msg_response">Response:</string>
@@ -21,4 +22,10 @@
     <string name="msg_sign_in">Please sign in</string>
     <string name="label_create_spreadsheet">New spreadsheet</string>
     <string name="label_add_spreadsheet">Add</string>
+    <string name="msg_request_account">"This app needs to access your Google account (via Contacts).</string>
+    <string name="label_grant">GRANT</string>
+    <string name="msg_creating_spreadsheet">Create spreadsheet..</string>
+    <string name="err_create_spreadsheet">Can not create spreadsheet, please try later.</string>
+    <string name="msg_appending_header">Format sheet..</string>
+    <string name="msg_spreadsheet_created">Spreadsheet created successfully.</string>
 </resources>

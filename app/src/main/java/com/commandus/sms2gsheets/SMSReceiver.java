@@ -34,9 +34,9 @@ public class SMSReceiver extends BroadcastReceiver {
             }
             String body = bodyText.toString();
 
-            Intent mIntent = new Intent(context, SberbankSmsService.class);
-            mIntent.putExtra(SberbankSmsService.PAR_FROM, sms_from);
-            mIntent.putExtra(SberbankSmsService.PAR_BODY, body);
+            Intent mIntent = new Intent(context, Sms2GSheetService.class);
+            mIntent.putExtra(Sms2GSheetService.PAR_FROM, sms_from);
+            mIntent.putExtra(Sms2GSheetService.PAR_BODY, body);
             context.startService(mIntent);
             abortBroadcast();
         }

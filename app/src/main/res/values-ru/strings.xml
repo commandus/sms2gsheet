@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">SMS в таблице</string>
+    <string name="action_settings">Настройки</string>
+    <string name="link_spreadsheet">Посмотреть таблицу</string>
+    <string name="MSG_REQUEST_SMS_RECEIVE">Запрос получения SMS</string>
+    <string name="text_button_sign_sheets">Войти с Документы Google</string>
+    <string name="format_new_spreadsheet_name">SMS</string>
+    <string name="format_new_sheet_name">Таблица</string>
+    <string name="err_no_internet">Нет Интернет соединения.</string>
+    <string name="err_no_playservices">Требуется установка Google Play Services. Пожалуйста, установите Google Play Services на устройстве, после чего откройте приложение.</string>
+    <string name="err_no_response">Нет ответа.</string>
+    <string name="err_message">Ошибка:</string>
+    <string name="msg_from">От:</string>
+    <string name="sheet_header_date">Дата</string>
+    <string name="sheet_header_time">Время</string>
+    <string name="sheet_header_from">От</string>
+    <string name="sheet_header_body">Текст</string>
+    <string name="msg_response">Ответ:</string>
+    <string name="err_no_credentials">Не указан аккаунт Google</string>
+    <string name="notification_channel_name">SMS</string>
+    <string name="notification_channel_id">com.commandus.sms2gsheets</string>
+    <string name="msg_sign_in">Пожалуйста, укажите аккаунт Google</string>
+    <string name="label_create_spreadsheet">Новая таблица</string>
+    <string name="label_add_spreadsheet">Добавить</string>
+    <string name="msg_request_account">Приложению нужно указать аккаунт Google для доступа к электронной таблице.</string>
+    <string name="label_grant">Предоставить доступ</string>
+    <string name="msg_creating_spreadsheet">Создается новая таблтца Google..</string>
+    <string name="err_create_spreadsheet">Не получилось создать таблицу Google, попробуйте позже/.</string>
+    <string name="msg_appending_header">Делается заголовок таблицы Google..</string>
+    <string name="msg_spreadsheet_created">Таблица Google для записи SMS успешно создана.</string>
+</resources>

@@ -4,9 +4,10 @@
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.SEND_SMS" />
+    <!--
+        <uses-permission android:name="android.permission.SEND_SMS" />
+    -->
     <uses-permission android:name="android.permission.INTERNET" />
-
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
 
@@ -23,7 +24,10 @@
             android:name="com.google.android.backup.api_key"
             android:value="AEdPqrEAAAAIT6wgbr5VViuaSMInsavlgKBKIIsFJ8I2hwB29A" />
 
-        <receiver android:name="com.commandus.sms2gsheets.SMSReceiver">
+        <receiver
+            android:name="com.commandus.sms2gsheets.SMSReceiver"
+            android:permission="android.permission.BROADCAST_SMS"
+            >
             <intent-filter android:priority="100">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
@@ -47,7 +51,7 @@
                     android:host="sms.commandus.com" />
             </intent-filter>
         </activity>
-        <service android:name="com.commandus.sms2gsheets.SberbankSmsService"></service>
+        <service android:name="com.commandus.sms2gsheets.Sms2GSheetService" />
     </application>
 
 </manifest>

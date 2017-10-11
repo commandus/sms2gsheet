@@ -16,16 +16,13 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.telephony.SmsManager;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
-import android.text.util.Linkify;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -43,9 +40,7 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -55,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     private static final int PERMISSIONS_REQUESTS = 1;
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
-    private static final String SHEET_RANGE = "A:C";
+    private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.RECEIVE_SMS};  // , Manifest.permission.SEND_SMS;
 
     GoogleAccountCredential mCredential;
 
@@ -95,7 +90,8 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         .setAction(R.string.label_add_spreadsheet, new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
-                                createSpreadsheet();
+                                // create a new spreadsheet
+                                mCreateSheetTasks.add(create_new());
                                 startNextTask();
                             }
                         })
@@ -119,18 +115,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
 
         mTextSign = findViewById(R.id.text_sign);
-        /*
-        mTextSign.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mTextSign.setEnabled(false);
-                mTextSign.setText("");
-                appendSms();
-                startNextTask();
-                mTextSign.setEnabled(true);
-            }
-        });
-        */
         // Initialize credentials and service object.
         mCredential = GoogleAccountCredential.usingOAuth2(getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
@@ -149,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
         String ss = mSettings.getSpreadsheetId();
         if ((ss != null) && (!ss.isEmpty())) {
+            mTextSign.setOnClickListener(null);
             mTextSign.setMovementMethod(LinkMovementMethod.getInstance());
             String p = "<a href=\"https://docs.google.com/spreadsheets/d/" + ss + "/edit#gid=0\">"
                     + getString(R.string.link_spreadsheet) + "</a>";
@@ -158,15 +143,30 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 mTextSign.setText(Html.fromHtml(p));
             }
             mTextSign.setEnabled(true);
-            Log.i(TAG, p);
         }
         else {
-            mTextSign.setEnabled(false);
+            String l = getString(R.string.label_create_spreadsheet);
+            String p = "<b><u>" + l + "</u></b>";
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                mTextSign.setText(Html.fromHtml(p, Html.FROM_HTML_MODE_LEGACY));
+            } else {
+                mTextSign.setText(Html.fromHtml(p));
+            }
+            mTextSign.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // create a new spreadsheet
+                    mCreateSheetTasks.add(create_new());
+                    startNextTask();
+                }
+            });
+            mTextSign.setEnabled(true);
         }
     }
 
     private void startNextTask()
     {
+        invalidateSpreadsheet();
         if (mCreateSheetTasks.size() > 0) {
             if (checkNetworkNCredentials()) {
                 CreateSheetTask t = mCreateSheetTasks.get(0);
@@ -186,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     public void requestPermissions() {
         // No explanation needed, we can request the permission.
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS},
+        ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS,  
                 PERMISSIONS_REQUESTS);
     }
 
@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 Manifest.permission.READ_EXTERNAL_STORAGE)) {
             final String message = getString(R.string.MSG_REQUEST_SMS_RECEIVE);
             Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG)
-                    .setAction("GRANT", new View.OnClickListener() {
+                    .setAction(getString(R.string.label_grant), new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             requestPermissions();
@@ -207,27 +207,16 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
     }
 
-    private void createSpreadsheet() {
-        // create a new spreadsheet
-        mCreateSheetTasks.add(create_new());
-    }
-
     private void appendHeader() {
         ArrayList<String> row = new ArrayList<>();
         row.add(getString(R.string.sheet_header_date));
+        row.add(getString(R.string.sheet_header_time));
         row.add(getString(R.string.sheet_header_from));
         row.add(getString(R.string.sheet_header_body));
         mAppendRowsTask.add(append_row(row));
     }
 
-    private void appendSms() {
-        ArrayList<String> row = new ArrayList<>();
-        row.add(android.text.format.DateFormat.getDateFormat(this).format(new Date()));
-        row.add("Unknown");
-        row.add("Blah-blah-blah");
-        mAppendRowsTask.add(append_row(row));
-    }
-
+    /*
     private void sendSMSMessage(String message) {
         String phoneNo = "900";
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
@@ -243,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             Toast.makeText(getApplicationContext(), "SMS sent.", Toast.LENGTH_LONG).show();
         }
     }
+    */
 
     private boolean checkNetworkNCredentials() {
         if (!isGooglePlayServicesAvailable()) {
@@ -251,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
             return false;
-        } else if (!isDeviceOnline()) {
+        } else if (!Helper.isDeviceOnline(this)) {
             mTextSign.setText(R.string.err_no_internet);
             return false;
         }
@@ -268,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 new GoogleSheetsCreateResponseReceiver() {
             @Override
             public void onStart() {
-                mTextSign.setText("");
+                mTextSign.setText(getString(R.string.msg_creating_spreadsheet));
                 mProgress.show();
             }
 
@@ -310,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                             MainActivity.REQUEST_AUTHORIZATION);
                 } else {
                     String m = getString(R.string.err_message) + error.getMessage();
-                    mTextSign.setText(m);
+                    mTextSign.setText(getString(R.string.err_create_spreadsheet));
                 }
             }
         });
@@ -326,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             @Override
             public AppendValuesResponse append_rows(Sheets sheets) throws IOException {
                 String range;
-                range = SHEET_RANGE;
+                range = Helper.SHEET_RANGE;
                 ValueRange vals = new ValueRange();
                 vals.setMajorDimension("ROWS");
                 List<List<Object>> vls;
@@ -347,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
             @Override
             public void onStart() {
-                mTextSign.setText("");
+                mTextSign.setText(R.string.msg_appending_header);
                 mProgress.show();
             }
 
@@ -361,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 if (response == null) {
                     mTextSign.setText(R.string.err_no_response);
                 } else {
-                    mTextSign.setText(response.toString());
+                    mTextSign.setText(R.string.msg_spreadsheet_created);
                 }
                 startNextTask();
             }
@@ -439,17 +429,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     }
 
     /**
-     * Checks whether the device currently has a network connection.
-     * @return true if the device has a network connection, false otherwise.
-     */
-    private boolean isDeviceOnline() {
-        ConnectivityManager connMgr =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
-
-    /**
      * Attempts to set the account used with the API credentials. If an account
      * name was previously saved it will use that one; otherwise an account
      * picker dialog will be shown to the user. Note that the setting the
@@ -477,7 +456,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
             // Request the GET_ACCOUNTS permission via a user dialog
             EasyPermissions.requestPermissions(
                     this,
-                    "This app needs to access your Google account (via Contacts).",
+                    getString(R.string.msg_request_account),
                     REQUEST_PERMISSION_GET_ACCOUNTS,
                     Manifest.permission.GET_ACCOUNTS);
         }

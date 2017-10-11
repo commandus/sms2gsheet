@@ -12,8 +12,9 @@ import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
-public class SberbankSmsService extends Service {
+public class Sms2GSheetService extends Service {
     public static final String PAR_FROM = "from";
     public static final String PAR_BODY = "body";
 
@@ -21,6 +22,20 @@ public class SberbankSmsService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private List<AppendRowsTask> mAppendRowsTask = new ArrayList<>();
+
+
+    private void startNextTask()
+    {
+        if (mAppendRowsTask.size() > 0) {
+            if (Helper.isDeviceOnline(this)) {
+                AppendRowsTask t = mAppendRowsTask.get(0);
+                mAppendRowsTask.remove(0);
+                t.execute();
+            }
+        }
     }
 
     @Override
@@ -38,13 +53,15 @@ public class SberbankSmsService extends Service {
     private void logSMS(Date date, String from, String sms_body) {
         ArrayList<String> row = new ArrayList<>();
         row.add(android.text.format.DateFormat.getDateFormat(this).format(date));
+        row.add(android.text.format.DateFormat.getTimeFormat(this).format(date));
         row.add(from);
         row.add(sms_body);
         AppendRowsTask t = Helper.appendRow(this, row);
         if (t == null) {
             Helper.showNotificationError(this, getString(R.string.err_no_credentials));
         } else {
-            t.execute();
+            mAppendRowsTask.add(t);
+            startNextTask();
         }
     }
 
