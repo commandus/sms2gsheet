@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         }
         else {
             String l = getString(R.string.label_create_spreadsheet);
-            String p = "<b><u>" + l + "</u></b>";
+            String p = "<font color=\"blue\"><b><u>" + l + "</u></b></font>";
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                 mTextSign.setText(Html.fromHtml(p, Html.FROM_HTML_MODE_LEGACY));
             } else {
@@ -156,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 @Override
                 public void onClick(View view) {
                     // create a new spreadsheet
+                    mTextSign.setEnabled(false);
                     mCreateSheetTasks.add(create_new());
                     startNextTask();
                 }
@@ -170,7 +172,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         if (mCreateSheetTasks.size() > 0) {
             if (checkNetworkNCredentials()) {
                 CreateSheetTask t = mCreateSheetTasks.get(0);
-                mCreateSheetTasks.remove(0);
                 t.execute();
             }
         } else {
@@ -205,15 +206,6 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         } else {
             requestPermissions();
         }
-    }
-
-    private void appendHeader() {
-        ArrayList<String> row = new ArrayList<>();
-        row.add(getString(R.string.sheet_header_date));
-        row.add(getString(R.string.sheet_header_time));
-        row.add(getString(R.string.sheet_header_from));
-        row.add(getString(R.string.sheet_header_body));
-        mAppendRowsTask.add(append_row(row));
     }
 
     /*
@@ -282,7 +274,16 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                         mSettings.setSheet("");
                 }
                 mSettings.save(MainActivity.this);
-                appendHeader();
+
+                ArrayList<String> row = new ArrayList<>();
+                row.add(getString(R.string.sheet_header_date));
+                row.add(getString(R.string.sheet_header_time));
+                row.add(getString(R.string.sheet_header_from));
+                row.add(getString(R.string.sheet_header_body));
+                mAppendRowsTask.add(append_row(row));
+
+                // no more need to crreaste anre spreadsheet
+                mCreateSheetTasks.clear();
                 startNextTask();
             }
 
@@ -391,7 +392,11 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_visit_site) {
+            String url = getString(R.string.url_site_help);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(url));
+            startActivity(intent);
             return true;
         }
 
