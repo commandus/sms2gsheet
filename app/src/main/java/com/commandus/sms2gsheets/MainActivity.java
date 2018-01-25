@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
 
     /**
      * < Android 22
-     * @see https://stackoverflow.com/questions/37312103/unable-to-get-provider-com-google-firebase-provider-firebaseinitprovider
+     * https://stackoverflow.com/questions/37312103/unable-to-get-provider-com-google-firebase-provider-firebaseinitprovider
      */
     @Override
     protected void attachBaseContext(Context context) {
@@ -406,6 +406,10 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+        MenuItem mi = menu.findItem(R.id.action_tts_on);
+        if (mi != null) {
+            mi.setChecked(mSettings.isTTSOn());
+        }
         return true;
     }
 
@@ -417,14 +421,18 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_visit_site) {
-            String url = getString(R.string.url_site_help);
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setData(Uri.parse(url));
-            startActivity(intent);
-            return true;
+        switch (id) {
+            case R.id.action_visit_site:
+                String url = getString(R.string.url_site_help);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                startActivity(intent);
+                return true;
+            case R.id.action_tts_on:
+                item.setChecked(!item.isChecked());
+                mSettings.setTTSOn(item.isChecked());
+                return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 

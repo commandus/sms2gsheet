@@ -29,4 +29,5 @@
     <string name="msg_appending_header">Format sheet..</string>
     <string name="msg_spreadsheet_created">Spreadsheet created successfully.</string>
     <string name="url_site_help">https://help.commandus.com/sms/</string>
+    <string name="action_tts_on">Say SMS</string>
 </resources>

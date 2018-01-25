@@ -1,9 +1,13 @@
 package com.commandus.sms2gsheets;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.speech.tts.TextToSpeech;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
@@ -21,12 +25,72 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
-public class Sms2GSheetService extends Service {
+public class Sms2GSheetService
+        extends Service
+        implements TextToSpeech.OnInitListener
+{
     public static final String PAR_FROM = "from";
     public static final String PAR_BODY = "body";
     private static final String TAG = Sms2GSheetService.class.getSimpleName();
     private Integer mSequence = 0;
+
+    // TTS
+    private static android.speech.tts.TextToSpeech mTTS;
+
+    /**
+     * Say phrase
+     * @param value phrase to say
+     * @param language language identifier e.g. "en"
+     * @return true if TTS ie enabled
+     */
+    public boolean say(String value, String language) {
+        if (mTTS != null) {
+            Locale loc = new Locale(language);
+            mTTS.setLanguage(loc);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Bundle alarm = new Bundle();
+                alarm.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
+                mTTS.speak(value, TextToSpeech.QUEUE_ADD, alarm, TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID);
+            } else {
+                HashMap<String, String> alarm = new HashMap<>();
+                alarm.put(TextToSpeech.Engine.KEY_PARAM_STREAM, String.valueOf(AudioManager.STREAM_ALARM));
+                mTTS.speak(value, TextToSpeech.QUEUE_ADD, alarm);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onInit(int status) {
+        if ((status == TextToSpeech.SUCCESS) && (mTTS != null)) {
+            Log.i(TAG, "TTS started successfully.");
+        } else {
+            mTTS = null;
+            Log.e(TAG, "TTS is not started. Status = " + Integer.toString(status));
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        // TextToSpeech
+        if (mTTS != null) {
+            mTTS.shutdown();
+            mTTS = null;
+        }
+    }
+
+    private void saySMS(String sms) {
+        // say("Attention. Emergency. All personnel must evacuate immediately. You now have 4 minutes to reach minimum safe distance.", "en");
+        // say("Автобус по маршруту 101 Якутск - Маган отправляется через 10 минут с платформы номер 5.", "ru");
+        String sysLang = Locale.getDefault().getLanguage();
+        Log.i(TAG, "TTS " + sms + " using system language " + sysLang);
+        say(sms, sysLang);
+    }
+
 
     @Nullable
     @Override
@@ -47,6 +111,12 @@ public class Sms2GSheetService extends Service {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        mTTS = new TextToSpeech(this, this);
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             Bundle extras = intent.getExtras();
@@ -55,6 +125,10 @@ public class Sms2GSheetService extends Service {
                 String sms_body = extras.getString(PAR_BODY);
                 Helper.showNotificationSMS(this, from, sms_body);
                 logSMS(new Date(), from, sms_body);
+                final ApplicationSettings settings = ApplicationSettings.getInstance(Sms2GSheetService.this);
+                if (settings.isTTSOn()) {
+                    saySMS(sms_body);
+                }
             }
         }
         return START_STICKY;

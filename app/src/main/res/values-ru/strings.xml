@@ -29,4 +29,5 @@
     <string name="msg_appending_header">Делается заголовок таблицы Google..</string>
     <string name="msg_spreadsheet_created">Таблица Google для записи SMS успешно создана.</string>
     <string name="url_site_help">https://help.commandus.com/sms/</string>
+    <string name="action_tts_on">Прочитать SMS вслух</string>
 </resources>

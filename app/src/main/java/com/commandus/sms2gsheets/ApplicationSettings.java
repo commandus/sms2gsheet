@@ -12,11 +12,13 @@ class ApplicationSettings {
 	private static final String PREF_SPREADSHEET_ID = "ss";
 	private static final String PREF_SHEET = "s";
 	private static final String PREF_FIRST_TIME = "firsttime";
+	private static final String PREF_TTS_ON = "ttson";
 
     private String mAccountName;
     private String mSpreadsheetId;
 	private String mSheet;
 	private static boolean mFirstTime;
+	private static boolean mTTSOn;
 
 	private static ApplicationSettings mInstance = null;
 
@@ -43,7 +45,6 @@ class ApplicationSettings {
 		return mSheet;
 	}
 
-
     void setSheet(String value) {
         mSheet = value;
     }
@@ -56,13 +57,22 @@ class ApplicationSettings {
         mAccountName = value;
     }
 
-    void save(Context context) {
+	public boolean isTTSOn() {
+		return mTTSOn;
+	}
+
+	void setTTSOn(boolean value) {
+		mTTSOn = value;
+	}
+
+	void save(Context context) {
 		SharedPreferences settings = context.getSharedPreferences(PREFS_NAME, 0);
 		SharedPreferences.Editor editor = settings.edit();
         editor.putString(PREF_ACCOUNT_NAME, mAccountName);
 		editor.putString(PREF_SPREADSHEET_ID, mSpreadsheetId);
 		editor.putString(PREF_SHEET, mSheet);
 		editor.putBoolean(PREF_FIRST_TIME, mSpreadsheetId.isEmpty());
+		editor.putBoolean(PREF_TTS_ON, mTTSOn);
 		editor.apply();
 	}
 
@@ -72,6 +82,7 @@ class ApplicationSettings {
 		mSpreadsheetId = settings.getString(PREF_SPREADSHEET_ID, "");
 		mSheet = settings.getString(PREF_SHEET, "");
 		mFirstTime = settings.getBoolean(PREF_FIRST_TIME, true);
+		mTTSOn = settings.getBoolean(PREF_TTS_ON, false);
 	}
 
 	public boolean isFirstTime() {
