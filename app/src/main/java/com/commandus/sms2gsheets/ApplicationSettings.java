@@ -61,8 +61,9 @@ class ApplicationSettings {
 		return mTTSOn;
 	}
 
-	void setTTSOn(boolean value) {
+	void setTTSOn(Context context, boolean value) {
 		mTTSOn = value;
+		save(context);
 	}
 
 	void save(Context context) {

@@ -430,7 +430,7 @@ public class MainActivity extends AppCompatActivity implements EasyPermissions.P
                 return true;
             case R.id.action_tts_on:
                 item.setChecked(!item.isChecked());
-                mSettings.setTTSOn(item.isChecked());
+                mSettings.setTTSOn(this, item.isChecked());
                 return true;
         }
         return super.onOptionsItemSelected(item);
