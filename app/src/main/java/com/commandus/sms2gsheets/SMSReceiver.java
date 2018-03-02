@@ -38,7 +38,7 @@ public class SMSReceiver extends BroadcastReceiver {
             mIntent.putExtra(Sms2GSheetService.PAR_FROM, sms_from);
             mIntent.putExtra(Sms2GSheetService.PAR_BODY, body);
             context.startService(mIntent);
-            abortBroadcast();
+            // abortBroadcast();
         }
     }
 }

@@ -20,8 +20,8 @@ android {
         applicationId "com.commandus.sms2gsheets"
         minSdkVersion 15
         targetSdkVersion 26
-        versionCode 7
-        versionName "1.7"
+        versionCode 8
+        versionName "1.8"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
     }
