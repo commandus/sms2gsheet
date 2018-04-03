@@ -137,7 +137,7 @@ public class Sms2GSheetService
     private void logSMS(Date date, String from, String sms_body) {
         ArrayList<String> sms_row = new ArrayList<>();
         sms_row.add(android.text.format.DateFormat.getDateFormat(this).format(date));
-        sms_row.add(android.text.format.DateFormat.getTimeFormat(this).format(date));
+        sms_row.add(android.text.format.DateFormat.format("HH:mm:ss", date).toString());
         sms_row.add(from);
         sms_row.add(sms_body);
         mSequence++;
